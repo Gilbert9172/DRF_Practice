@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db.models.fields import BooleanField
 from .managers import UserManager
+from rest_framework_simplejwt.tokens import RefreshToken
 
 #-- Custom User Model
 class User(AbstractBaseUser, PermissionsMixin):
@@ -30,6 +31,13 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    def tokens(self):
+        refresh = RefreshToken.for_user(self)
+        return {
+            "refresh token" : str(refresh),
+            "access token" : str(refresh.access_token)
+        }
 
 # Reference
 # https://axce.tistory.com/m/99

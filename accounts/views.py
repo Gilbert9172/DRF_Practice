@@ -11,12 +11,12 @@ from rest_framework import generics
 #-- Module
 from .models import User
 from .serializers import (
-    RegisterSerializer,EmailVerificationSerializer
+    RegisterSerializer,EmailVerificationSerializer,
+    LoginSerializer,
 )
 from .utils import Util
 from dotenv import load_dotenv
 import os
-from django.conf import settings
 
 #-- JWT
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -29,7 +29,8 @@ from drf_yasg import openapi
 
 
 
-#-- RegisterView (CVB)
+
+"""****************************************** Generic / Mixins 상속 ******************************************"""
 """
 ListCreateAPIView는 mixins.ListModelMixin과 
 mixins.CreateModelMixin 기능을 포함하고 있다. 
@@ -38,8 +39,7 @@ mixins를 상속 받을 경우 MRO에 따라,
 mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView 순으로
 상속을 받아야한다. 
 """
-
-#******************************************** Generic / Mixins 상속 ********************************************#
+#-- RegisterView (CVB)
 # class RegisterView(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
 #     queryset = User.objects.all()
 #     serializer_class = RegisterSerializer
@@ -50,12 +50,10 @@ mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView 순으로
 
 #     def post(self, request, *args, **kwargs):
 #         return self.create(request, *args, **kwargs)
-#*****************************************************************************************************************#
 
 
 
-
-#************************************************* APIView 상속 *************************************************#
+"""************************************************* APIView 상속 *************************************************"""
 class RegisterView(generics.GenericAPIView):
 
     queryset = User.objects.all()
@@ -90,6 +88,7 @@ class RegisterView(generics.GenericAPIView):
 
         # token 
         user = User.objects.get(email=user_data['email'])
+        # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/rest_framework_simplejwt.html?highlight=Refreschtoken.for_user()#rest_framework_simplejwt.tokens.Token.for_user
         token = RefreshToken.for_user(user).access_token
         
         current_site = get_current_site(request).domain # 127.0.0.1:8000
@@ -104,12 +103,11 @@ class RegisterView(generics.GenericAPIView):
         Util.send_email(data)
 
         return Response(user_data, status=status.HTTP_201_CREATED)
-#*****************************************************************************************************************#
 
 
 
 
-#**************************************** RegisterView를 함수기반으로 작성 ****************************************#
+"""*************************************** RegisterView를 함수기반으로 작성 ***************************************"""
 # from rest_framework.decorators import api_view
 
 # @api_view(['GET','POST'])
@@ -128,14 +126,21 @@ class RegisterView(generics.GenericAPIView):
 #             return Response(serializer.data, status=201)
     
 #     return Response(serializer.data, status=404)
-#*****************************************************************************************************************#
+
+
 
 #-- is_verified를 True로 바꿔주는 로직.
-load_dotenv()
-class VerifyEmail(views.APIView):
+
+"""*************************************** RegisterView를 함수기반으로 작성 ***************************************"""
+# https://ctsictai.medium.com/drf-yasg-api-%EB%AC%B8%EC%84%9C-%EC%9E%90%EB%8F%99%ED%99%94-%EC%9E%91%EC%84%B1-part-2-68cacb14df34
+class VerifyEmail(generics.GenericAPIView):
     serializer_class = EmailVerificationSerializer
     token_param_config = openapi.Parameter(
-        'token', in_=openapi.IN_QUERY, description='Bearer token', type=openapi.TYPE_STRING)
+        'token',
+        in_=openapi.IN_QUERY, 
+        description='Bearer token',
+        type=openapi.TYPE_STRING
+    )
 
     @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request):
@@ -143,14 +148,15 @@ class VerifyEmail(views.APIView):
         token = request.GET.get('token')
 
         try:
-            payload = jwt.decode(token, os.getenv('SECRET_KEY'), 'HS256')
+            load_dotenv()
+            token_decoding = jwt.decode(token, os.getenv('SECRET_KEY'), 'HS256')
             """
             decode알고리즘을 정의해줘야한다...
 
             payload 출력 결과
             {'token_type': 'access', 'exp': 1640763234, 'iat': 1640762334, 'jti': '37edb32aebc249a3a4e5102e42708d2d', 'user_id': 19}
             """
-            user = User.objects.get(id=payload['user_id'])
+            user = User.objects.get(id=token_decoding['user_id'])
             if not user.is_verified :
                 user.is_verified = True
                 user.save()
@@ -160,3 +166,14 @@ class VerifyEmail(views.APIView):
             return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
         except jwt.exceptions.DecodeError as identifier:
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+"""*************************************** LoginAPIView ***************************************"""
+class LoginAPIView(generics.GenericAPIView):
+    queryset = None
+    serializer_class = LoginSerializer
+
+    def post(self,request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

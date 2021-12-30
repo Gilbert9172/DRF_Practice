@@ -1,6 +1,4 @@
 from django.core.mail import EmailMessage
-
-
 import threading
 
 
@@ -12,7 +10,6 @@ class EmailThread(threading.Thread):
 
     def run(self):
         self.email.send()
-
 
 class Util:
     @staticmethod
