@@ -1,22 +1,27 @@
 #-- Django
+from codecs import lookup
+from django.db.models import query
+from django.http.request import validate_host
 from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
 
 #-- DRF
-from rest_framework import generics, serializers, status, mixins, views
+from rest_framework import generics, renderers, serializers, status, mixins, views
 from rest_framework import response
 from rest_framework.response import Response
-from rest_framework import generics
+from rest_framework.generics import GenericAPIView, UpdateAPIView
+from rest_framework import permissions
 
 #-- Module
 from .models import User
 from .serializers import (
     RegisterSerializer,EmailVerificationSerializer,
-    LoginSerializer,
+    LoginSerializer, ChangePasswordSerializer
 )
 from .utils import Util
 from dotenv import load_dotenv
 import os
+from .renderer import UserRenderer
 
 #-- JWT
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -54,10 +59,11 @@ mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView 순으로
 
 
 """************************************************* APIView 상속 *************************************************"""
-class RegisterView(generics.GenericAPIView):
+class RegisterView(GenericAPIView):
 
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
+    renderer_classes = (UserRenderer,)
 
     def get(self, request):
         serializers = self.serializer_class(self.get_queryset(), many=True)
@@ -133,7 +139,7 @@ class RegisterView(generics.GenericAPIView):
 
 """*************************************** RegisterView를 함수기반으로 작성 ***************************************"""
 # https://ctsictai.medium.com/drf-yasg-api-%EB%AC%B8%EC%84%9C-%EC%9E%90%EB%8F%99%ED%99%94-%EC%9E%91%EC%84%B1-part-2-68cacb14df34
-class VerifyEmail(generics.GenericAPIView):
+class VerifyEmail(GenericAPIView):
     serializer_class = EmailVerificationSerializer
     token_param_config = openapi.Parameter(
         'token',
@@ -169,11 +175,55 @@ class VerifyEmail(generics.GenericAPIView):
 
 
 """*************************************** LoginAPIView ***************************************"""
-class LoginAPIView(generics.GenericAPIView):
+from expenses.permissions import IsOwner
+from rest_framework import permissions
+
+class LoginAPIView(GenericAPIView):
     queryset = None
     serializer_class = LoginSerializer
-
+    
     def post(self,request):
+        
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UpdatePassword(GenericAPIView):
+
+    queryset = User.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = ChangePasswordSerializer
+    lookup_field = 'id'
+    
+    # def get_queryset(self):
+    #     return self.queryset.filter(email=self.request.user).first()
+
+    def get_object(self):
+        return super().get_object()
+
+    # def patch(self, request, *args, **kwargs):
+    #     serializer = self.serializer_class(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     breakpoint()
+    #     serializer.save()
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def patch(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        breakpoint()
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    

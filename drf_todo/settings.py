@@ -18,6 +18,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1','192.168.254.236','192.168.254.255']
 # https://stackoverflow.com/questions/17116718/how-to-access-my-127-0-0-18000-from-android-tablet
+
 #******************************** ADD *********************************#
 AUTH_USER_MODEL = 'accounts.User'
 
@@ -25,12 +26,28 @@ REST_FRAMEWORK = {
     
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination', # PageNumberPagination : 페이지 번호 입력가능.
+    
+    'PAGE_SIZE': 100
 }
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=1),
+}
+
+# Swagger에서 인증할 때 넣어야 할 값.
+"""Bearer <token> 으로 넣어줘야함."""
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
 }
 #**********************************************************************#
 
@@ -52,6 +69,8 @@ INSTALLED_APPS = [
 
     #-- app
     'accounts',
+    'expenses',
+    'income',
 ]
 
 MIDDLEWARE = [
@@ -148,5 +167,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-SERVER_EMAIL = "gilbert950904@gmail.com"
-DEFAULT_FROM_MAIL = "gilbert950904"
+SERVER_EMAIL = os.getenv('SERVER_EMAIL')
+DEFAULT_FROM_MAIL = os.getenv('DEFAULT_FROM_MAIL')

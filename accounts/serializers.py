@@ -4,7 +4,7 @@ from .models import User
 from django.contrib import auth
 
 #-- RegisterSerializer
-class RegisterSerializer(serializers.ModelSerializer):
+class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(
         max_length=68, min_length=6, write_only=True
     )
@@ -50,10 +50,11 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
 
 
 #-- LoginSerializer
-class LoginSerializer(serializers.ModelSerializer):
+class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=255, min_length=3)
     password = serializers.CharField(max_length=68, min_length=3, write_only=True)
     token = serializers.CharField(max_length=68, read_only=True)
+    # token2 = serializers.CharField(max_length=68, read_only=True)
 
     class Meta:
         model = User
@@ -61,11 +62,11 @@ class LoginSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         email = attrs.get('email', '')
-
+    
         password = attrs.get('password', '')
-
+        
         user = auth.authenticate(email=email, password=password)
-
+        
         if not user.is_active:
             raise AuthenticationFailed('Account Disable, contact admin')
         
@@ -78,5 +79,23 @@ class LoginSerializer(serializers.ModelSerializer):
         return {
             "email" : user.email,
             "password" : user.password,
-            "token" : user.tokens
+            "token" : user.tokens()['access token'],  
         }
+
+class ChangePasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(max_length=68, min_length=3)
+    check_password = serializers.CharField(max_length=68, min_length=3)
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['check_password']:
+            raise ValueError
+        
+        return attrs
+    """
+    OrderedDict([('password', '123456'), ('check_password', '123456')])
+    """
+
+    def update(self, instance, validated_data):
+        instance.set_password(validated_data['password'])
+        instance.save()
+        return instance
