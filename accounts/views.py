@@ -9,8 +9,9 @@ from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import generics, renderers, serializers, status, mixins, views
 from rest_framework import response
 from rest_framework.response import Response
-from rest_framework.generics import GenericAPIView, UpdateAPIView
+from rest_framework.generics import GenericAPIView, RetrieveAPIView, UpdateAPIView
 from rest_framework import permissions
+from rest_framework.renderers import JSONRenderer
 
 #-- Module
 from .models import User
@@ -175,20 +176,23 @@ class VerifyEmail(GenericAPIView):
 
 
 """*************************************** LoginAPIView ***************************************"""
-from expenses.permissions import IsOwner
-from rest_framework import permissions
+import json
 
 class LoginAPIView(GenericAPIView):
     queryset = None
     serializer_class = LoginSerializer
     
     def post(self,request):
-        
         serializer = self.serializer_class(data=request.data)
+        # breakpoint()
         serializer.is_valid(raise_exception=True)
+        # json = JSONRenderer().render(serializer.data)
+        # print(f'json 값: {json}')
+        # print(f'json 값: {serializer.data}')
+        # print(json==serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
+#-- 비밀번호 수정.
 class UpdatePassword(GenericAPIView):
 
     queryset = User.objects.all()
@@ -196,34 +200,17 @@ class UpdatePassword(GenericAPIView):
     serializer_class = ChangePasswordSerializer
     lookup_field = 'id'
     
-    # def get_queryset(self):
-    #     return self.queryset.filter(email=self.request.user).first()
-
-    def get_object(self):
-        return super().get_object()
-
-    # def patch(self, request, *args, **kwargs):
-    #     serializer = self.serializer_class(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     breakpoint()
-    #     serializer.save()
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
-    
     def patch(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        breakpoint()
-        self.perform_update(serializer)
-
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
+        serializer = self.serializer_class(instance, data={"password" : request.data['password']}, partial=True)
+        serializer.is_valid(raise_exception=True) # 여기까진 비번 안변함 (DB / serializer.data)
+        self.perform_update(serializer) # 여기가 실행되면 DB에서 비번변경.(모델 인스턴스 생성)
         return Response(serializer.data)
 
     def perform_update(self, serializer):
         serializer.save()
 
     
+#-- 아이디 찾기.
+class FindIDView(RetrieveAPIView):
+    pass

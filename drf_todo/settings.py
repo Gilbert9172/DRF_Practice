@@ -16,7 +16,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1','192.168.254.236','192.168.254.255']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1','192.168.254.236','192.168.219.107']
 # https://stackoverflow.com/questions/17116718/how-to-access-my-127-0-0-18000-from-android-tablet
 
 #******************************** ADD *********************************#
@@ -34,7 +34,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=15),
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=1),
 }
 

@@ -53,12 +53,12 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=255, min_length=3)
     password = serializers.CharField(max_length=68, min_length=3, write_only=True)
-    token = serializers.CharField(max_length=68, read_only=True)
-    # token2 = serializers.CharField(max_length=68, read_only=True)
+    access_token = serializers.CharField(max_length=68, read_only=True)
+    refresh_token = serializers.CharField(max_length=68, read_only=True)
 
     class Meta:
         model = User
-        fields = ['email', 'password','token']
+        fields = ['email', 'password','access_token', 'refresh_token']
 
     def validate(self, attrs):
         email = attrs.get('email', '')
@@ -79,23 +79,22 @@ class LoginSerializer(serializers.Serializer):
         return {
             "email" : user.email,
             "password" : user.password,
-            "token" : user.tokens()['access token'],  
+            "access_token" : user.tokens()['access token'],
+            "refresh_token" : user.tokens()['refresh token']  
         }
-
+        
 class ChangePasswordSerializer(serializers.Serializer):
     password = serializers.CharField(max_length=68, min_length=3)
     check_password = serializers.CharField(max_length=68, min_length=3)
 
-    def validate(self, attrs):
-        if attrs['password'] != attrs['check_password']:
-            raise ValueError
-        
-        return attrs
-    """
-    OrderedDict([('password', '123456'), ('check_password', '123456')])
-    """
+    #-- validation
+    def validate_password(self, value):
+        if not value:
+            raise serializers.ValidationError
 
     def update(self, instance, validated_data):
+        # breakpoint()
+        # instance.password = validated_data.get('password') # 이렇게 하면 비밀번호가 그대로 넘어감.
         instance.set_password(validated_data['password'])
         instance.save()
         return instance
