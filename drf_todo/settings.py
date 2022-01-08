@@ -2,6 +2,7 @@ from pathlib import Path
 import os, pymysql
 from dotenv import load_dotenv
 import datetime
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,21 +17,22 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1','192.168.254.236','192.168.219.107']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1','192.168.254.236','192.168.219.107', '0.0.0.0']
 # https://stackoverflow.com/questions/17116718/how-to-access-my-127-0-0-18000-from-android-tablet
 
 #******************************** ADD *********************************#
 AUTH_USER_MODEL = 'accounts.User'
 
 REST_FRAMEWORK = {
-    
+    # 'DEFAULT_AUTHENTICATION_CLASSES': ('knox.auth.TokenAuthentication',),
+
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination', # PageNumberPagination : 페이지 번호 입력가능.
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination', # PageNumberPagination : 페이지 번호 입력가능.
     
-    'PAGE_SIZE': 100
+    # 'PAGE_SIZE': 100
 }
 
 SIMPLE_JWT = {
@@ -49,6 +51,22 @@ SWAGGER_SETTINGS = {
         }
     }
 }
+
+#-- Redis Cache 설정
+# Redis RAM cache setting
+CACHE = {
+    "default" : {
+        "BACKEND" : "django_redis.cache.RedisCache",
+        "LOCATION" : "redis://127.0.0.1:6379/1",
+        "OPTION" : {
+            "CLIENT_CLASS" : "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+CACHE_TTL = 60 * 1
 #**********************************************************************#
 
 # Application definition
@@ -60,17 +78,20 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    #-- Third
+    #-- Third-party
     'rest_framework',
     'drf_yasg',
     'django_extensions',
+    # 'knox',
     'rest_framework_simplejwt',
+    'rest_framework.authtoken',
 
 
     #-- app
     'accounts',
-    'expenses',
-    'income',
+    'posts',
+    # 'expenses',
+    # 'income',
 ]
 
 MIDDLEWARE = [
@@ -154,6 +175,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field

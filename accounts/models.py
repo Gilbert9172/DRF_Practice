@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 #-- Custom User Model
 class User(AbstractBaseUser, PermissionsMixin):
-    username = models.CharField(max_length=255, unique=True, db_index=True)
+    username = models.CharField(max_length=255, unique=True,db_index=True)
     email = models.EmailField(max_length=255, unique=True, db_index=True)
     phone = models.CharField(max_length=255, unique=True)
     
@@ -32,6 +32,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+    # 필드명 처럼 사용가능.
     def tokens(self):
         refresh = RefreshToken.for_user(self)
         return {
